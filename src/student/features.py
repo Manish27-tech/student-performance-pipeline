@@ -34,3 +34,25 @@ def add_indices(df: pd.DataFrame) -> pd.DataFrame:
     ).astype(str)
 
     return out
+
+
+# --------------------------------------------------------------------------- #
+# Grade trajectory
+# --------------------------------------------------------------------------- #
+def add_grade_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Describe the G1 -> G2 movement without peeking at the target.
+
+    ``grade_mean`` and ``G1_to_G2`` are legitimate features for a third-period
+    forecast. They are kept in a separate step so the leakage scenarios can switch
+    them off cleanly.
+    """
+    out = df.copy()
+
+    out["grade_mean"] = (out["G1"] + out["G2"]) / 2
+    out["G1_to_G2"] = out["G2"] - out["G1"]
+    out["grade_trend"] = np.select(
+        [out["G1_to_G2"] > 0, out["G1_to_G2"] == 0],
+        ["improving", "stable"],
+        default="declining",
+    )
+    return out
