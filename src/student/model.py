@@ -193,3 +193,67 @@ def tune_regressor(name, X_train, y_train,
               (value.item() if hasattr(value, "item") else value)
               for key, value in search.best_params_.items()}
     return search.best_estimator_, params
+
+
+# --------------------------------------------------------------------------- #
+# Classification
+# --------------------------------------------------------------------------- #
+def classification_metrics(y_true, probabilities, threshold: float = 0.5) -> dict:
+    predictions = (np.asarray(probabilities) >= threshold).astype(int)
+    tn, fp, fn, tp = confusion_matrix(y_true, predictions).ravel()
+    return {
+        "roc_auc": round(float(roc_auc_score(y_true, probabilities)), 4),
+        "accuracy": round(float(accuracy_score(y_true, predictions)), 4),
+        "precision": round(float(precision_score(y_true, predictions, zero_division=0)), 4),
+        "recall": round(float(recall_score(y_true, predictions, zero_division=0)), 4),
+        "f1": round(float(f1_score(y_true, predictions, zero_division=0)), 4),
+        "confusion_matrix": {"tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp)},
+    }
+
+
+def compare_classifiers(X_train, y_train,
+                        grade_set: bool | str = False) -> list[dict]:
+    numeric, categorical = feature_columns(grade_set)
+    folds = StratifiedKFold(n_splits=config.CV_FOLDS, shuffle=True,
+                            random_state=config.RANDOM_STATE)
+    scoring = {"roc_auc": "roc_auc", "f1": "f1", "precision": "precision",
+               "recall": "recall"}
+
+    rows = []
+    for name, estimator in classification_candidates().items():
+        pipeline = Pipeline([
+            ("preprocess", build_preprocessor(numeric, categorical)),
+            ("model", estimator),
+        ])
+        scores = cross_validate(pipeline, X_train, y_train, cv=folds, scoring=scoring,
+                                n_jobs=1, error_score="raise")
+        rows.append({
+            "model": name,
+            "roc_auc_mean": round(float(scores["test_roc_auc"].mean()), 4),
+            "f1_mean": round(float(scores["test_f1"].mean()), 4),
+            "precision_mean": round(float(scores["test_precision"].mean()), 4),
+            "recall_mean": round(float(scores["test_recall"].mean()), 4),
+            "fit_seconds": round(float(scores["fit_time"].mean()), 2),
+        })
+    return sorted(rows, key=lambda row: row["roc_auc_mean"], reverse=True)
+
+
+def tune_classifier(name, X_train, y_train,
+                    grade_set: bool | str = False) -> tuple[Pipeline, dict]:
+    numeric, categorical = feature_columns(grade_set)
+    pipeline = Pipeline([
+        ("preprocess", build_preprocessor(numeric, categorical)),
+        ("model", classification_candidates()[name]),
+    ])
+    search = RandomizedSearchCV(
+        pipeline, CLASSIFICATION_SPACES[name], n_iter=config.SEARCH_ITER,
+        scoring="roc_auc",
+        cv=StratifiedKFold(n_splits=config.SEARCH_FOLDS, shuffle=True,
+                           random_state=config.RANDOM_STATE),
+        random_state=config.RANDOM_STATE, n_jobs=1, refit=True,
+    )
+    search.fit(X_train, y_train)
+    params = {key.replace("model__", ""):
+              (value.item() if hasattr(value, "item") else value)
+              for key, value in search.best_params_.items()}
+    return search.best_estimator_, params
