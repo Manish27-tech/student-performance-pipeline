@@ -1,0 +1,315 @@
+{
+  "rows": 1044,
+  "per_subject": {
+    "mat": {
+      "label": "Mathematics",
+      "rows": 395,
+      "mean_g3": 10.415,
+      "median_g3": 11.0,
+      "std_g3": 4.581,
+      "pass_rate": 0.6709,
+      "zero_g3": 38,
+      "corr_g1_g3": 0.8015,
+      "corr_g2_g3": 0.9049,
+      "trajectory": {
+        "rows": 395,
+        "mean_g1": 10.909,
+        "mean_g2": 10.714,
+        "mean_g3": 10.415,
+        "mean_g1_to_g2": -0.195,
+        "mean_g2_to_g3": -0.299,
+        "zero_g3": 38
+      }
+    },
+    "por": {
+      "label": "Portuguese",
+      "rows": 649,
+      "mean_g3": 11.906,
+      "median_g3": 12.0,
+      "std_g3": 3.231,
+      "pass_rate": 0.8459,
+      "zero_g3": 15,
+      "corr_g1_g3": 0.8264,
+      "corr_g2_g3": 0.9185,
+      "trajectory": {
+        "rows": 649,
+        "mean_g1": 11.399,
+        "mean_g2": 11.57,
+        "mean_g3": 11.906,
+        "mean_g1_to_g2": 0.171,
+        "mean_g2_to_g3": 0.336,
+        "zero_g3": 15
+      }
+    }
+  },
+  "mean_g3": 11.342,
+  "pass_rate": 0.7797,
+  "zero_g3": 53,
+  "mean_g3_by_studytime": {
+    "1": {
+      "mean_g3": 10.58,
+      "students": 317
+    },
+    "2": {
+      "mean_g3": 11.34,
+      "students": 503
+    },
+    "3": {
+      "mean_g3": 12.49,
+      "students": 162
+    },
+    "4": {
+      "mean_g3": 12.27,
+      "students": 62
+    }
+  },
+  "mean_g3_by_failures": {
+    "0": {
+      "mean_g3": 12.05,
+      "students": 861
+    },
+    "1": {
+      "mean_g3": 8.43,
+      "students": 120
+    },
+    "2": {
+      "mean_g3": 7.48,
+      "students": 33
+    },
+    "3": {
+      "mean_g3": 6.8,
+      "students": 30
+    }
+  },
+  "mean_g3_by_higher": {
+    "0": {
+      "mean_g3": 8.35,
+      "students": 89
+    },
+    "1": {
+      "mean_g3": 11.62,
+      "students": 955
+    }
+  },
+  "mean_g3_by_schoolsup": {
+    "0": {
+      "mean_g3": 11.45,
+      "students": 925
+    },
+    "1": {
+      "mean_g3": 10.49,
+      "students": 119
+    }
+  },
+  "mean_g3_by_romantic": {
+    "0": {
+      "mean_g3": 11.62,
+      "students": 673
+    },
+    "1": {
+      "mean_g3": 10.83,
+      "students": 371
+    }
+  },
+  "mean_g3_by_goout": {
+    "1": {
+      "mean_g3": 10.45,
+      "students": 71
+    },
+    "2": {
+      "mean_g3": 12.06,
+      "students": 248
+    },
+    "3": {
+      "mean_g3": 11.69,
+      "students": 335
+    },
+    "4": {
+      "mean_g3": 11.09,
+      "students": 227
+    },
+    "5": {
+      "mean_g3": 10.28,
+      "students": 163
+    }
+  },
+  "mean_g3_by_effort_band": {
+    "high": {
+      "mean_g3": 12.43,
+      "students": 224
+    },
+    "low": {
+      "mean_g3": 10.58,
+      "students": 317
+    },
+    "medium": {
+      "mean_g3": 11.34,
+      "students": 503
+    }
+  },
+  "mean_g3_by_subject": {
+    "mat": {
+      "mean_g3": 10.42,
+      "students": 395
+    },
+    "por": {
+      "mean_g3": 11.91,
+      "students": 649
+    }
+  },
+  "absences": {
+    "mean": 4.43,
+    "median": 2.0,
+    "p95": 16.0,
+    "max": 75,
+    "zero_share": 0.3439
+  },
+  "top_correlations_with_g3": [
+    {
+      "feature": "G2",
+      "correlation": 0.9107
+    },
+    {
+      "feature": "G1",
+      "correlation": 0.8091
+    },
+    {
+      "feature": "failures",
+      "correlation": -0.3831
+    },
+    {
+      "feature": "Medu",
+      "correlation": 0.2015
+    },
+    {
+      "feature": "parent_education",
+      "correlation": 0.1996
+    },
+    {
+      "feature": "studytime",
+      "correlation": 0.1616
+    },
+    {
+      "feature": "Fedu",
+      "correlation": 0.1598
+    },
+    {
+      "feature": "alcohol_index",
+      "correlation": -0.1342
+    },
+    {
+      "feature": "Dalc",
+      "correlation": -0.1296
+    },
+    {
+      "feature": "age",
+      "correlation": -0.1253
+    }
+  ],
+  "pairing": {
+    "mat_rows": 395,
+    "por_rows": 649,
+    "pairs": 382,
+    "matched_share_of_mat": 0.9671,
+    "matched_share_of_por": 0.5886,
+    "naive_merge_rows": 39,
+    "keys_used": [
+      "school",
+      "sex",
+      "age",
+      "address",
+      "famsize",
+      "Pstatus",
+      "Medu",
+      "Fedu",
+      "Mjob",
+      "Fjob",
+      "reason",
+      "nursery",
+      "internet"
+    ],
+    "all_shared_columns_tried": 30
+  },
+  "paired_comparison": {
+    "pairs": 382,
+    "mean_mat": 10.387,
+    "mean_por": 12.516,
+    "mean_delta": 2.128,
+    "median_delta": 2.0,
+    "std_delta": 4.169,
+    "improved": 249,
+    "worsened": 95,
+    "tied": 38,
+    "improved_share": 0.6518,
+    "sign_test_p": 4.7051184942847537e-17,
+    "wilcoxon_p": 8.676252344673577e-21,
+    "cohen_d_paired": 0.51,
+    "grade_correlation": 0.4803,
+    "pass_rate_mat": 0.6675,
+    "pass_rate_por": 0.9162,
+    "largest_gains": [
+      {
+        "pair_id": 138,
+        "G3_mat": 0,
+        "G3_por": 15,
+        "delta_por_minus_mat": 15
+      },
+      {
+        "pair_id": 244,
+        "G3_mat": 0,
+        "G3_por": 15,
+        "delta_por_minus_mat": 15
+      },
+      {
+        "pair_id": 310,
+        "G3_mat": 0,
+        "G3_por": 15,
+        "delta_por_minus_mat": 15
+      },
+      {
+        "pair_id": 331,
+        "G3_mat": 0,
+        "G3_por": 15,
+        "delta_por_minus_mat": 15
+      },
+      {
+        "pair_id": 152,
+        "G3_mat": 0,
+        "G3_por": 14,
+        "delta_por_minus_mat": 14
+      }
+    ],
+    "largest_drops": [
+      {
+        "pair_id": 164,
+        "G3_mat": 12,
+        "G3_por": 1,
+        "delta_por_minus_mat": -11
+      },
+      {
+        "pair_id": 361,
+        "G3_mat": 11,
+        "G3_por": 0,
+        "delta_por_minus_mat": -11
+      },
+      {
+        "pair_id": 119,
+        "G3_mat": 16,
+        "G3_por": 8,
+        "delta_por_minus_mat": -8
+      },
+      {
+        "pair_id": 371,
+        "G3_mat": 7,
+        "G3_por": 0,
+        "delta_por_minus_mat": -7
+      },
+      {
+        "pair_id": 381,
+        "G3_mat": 16,
+        "G3_por": 10,
+        "delta_por_minus_mat": -6
+      }
+    ]
+  }
+}

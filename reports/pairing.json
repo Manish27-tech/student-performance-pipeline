@@ -1,0 +1,108 @@
+{
+  "pairing": {
+    "mat_rows": 395,
+    "por_rows": 649,
+    "pairs": 382,
+    "matched_share_of_mat": 0.9671,
+    "matched_share_of_por": 0.5886,
+    "naive_merge_rows": 39,
+    "keys_used": [
+      "school",
+      "sex",
+      "age",
+      "address",
+      "famsize",
+      "Pstatus",
+      "Medu",
+      "Fedu",
+      "Mjob",
+      "Fjob",
+      "reason",
+      "nursery",
+      "internet"
+    ],
+    "all_shared_columns_tried": 30
+  },
+  "comparison": {
+    "pairs": 382,
+    "mean_mat": 10.387,
+    "mean_por": 12.516,
+    "mean_delta": 2.128,
+    "median_delta": 2.0,
+    "std_delta": 4.169,
+    "improved": 249,
+    "worsened": 95,
+    "tied": 38,
+    "improved_share": 0.6518,
+    "sign_test_p": 4.7051184942847537e-17,
+    "wilcoxon_p": 8.676252344673577e-21,
+    "cohen_d_paired": 0.51,
+    "grade_correlation": 0.4803,
+    "pass_rate_mat": 0.6675,
+    "pass_rate_por": 0.9162,
+    "largest_gains": [
+      {
+        "pair_id": 138,
+        "G3_mat": 0,
+        "G3_por": 15,
+        "delta_por_minus_mat": 15
+      },
+      {
+        "pair_id": 244,
+        "G3_mat": 0,
+        "G3_por": 15,
+        "delta_por_minus_mat": 15
+      },
+      {
+        "pair_id": 310,
+        "G3_mat": 0,
+        "G3_por": 15,
+        "delta_por_minus_mat": 15
+      },
+      {
+        "pair_id": 331,
+        "G3_mat": 0,
+        "G3_por": 15,
+        "delta_por_minus_mat": 15
+      },
+      {
+        "pair_id": 152,
+        "G3_mat": 0,
+        "G3_por": 14,
+        "delta_por_minus_mat": 14
+      }
+    ],
+    "largest_drops": [
+      {
+        "pair_id": 164,
+        "G3_mat": 12,
+        "G3_por": 1,
+        "delta_por_minus_mat": -11
+      },
+      {
+        "pair_id": 361,
+        "G3_mat": 11,
+        "G3_por": 0,
+        "delta_por_minus_mat": -11
+      },
+      {
+        "pair_id": 119,
+        "G3_mat": 16,
+        "G3_por": 8,
+        "delta_por_minus_mat": -8
+      },
+      {
+        "pair_id": 371,
+        "G3_mat": 7,
+        "G3_por": 0,
+        "delta_por_minus_mat": -7
+      },
+      {
+        "pair_id": 381,
+        "G3_mat": 16,
+        "G3_por": 10,
+        "delta_por_minus_mat": -6
+      }
+    ]
+  }
+}

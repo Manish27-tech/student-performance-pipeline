@@ -1,0 +1,426 @@
+{
+  "generated_at": "2026-11-15T11:52:24+00:00",
+  "dataset": {
+    "rows": 1044,
+    "train_rows": 835,
+    "test_rows": 209,
+    "mean_g3": 11.342,
+    "pass_rate": 0.7797
+  },
+  "scenarios": {
+    "no_grades": {
+      "description": "Demographics, family, habits and absences only (usable early)",
+      "include_grades": false,
+      "features": 38,
+      "regression_comparison": [
+        {
+          "model": "random_forest",
+          "r2_mean": 0.362,
+          "r2_std": 0.0169,
+          "rmse_mean": 3.0749,
+          "mae_mean": 2.2204,
+          "fit_seconds": 2.19
+        },
+        {
+          "model": "gradient_boosting",
+          "r2_mean": 0.3171,
+          "r2_std": 0.0435,
+          "rmse_mean": 3.177,
+          "mae_mean": 2.3198,
+          "fit_seconds": 2.66
+        },
+        {
+          "model": "ridge",
+          "r2_mean": 0.229,
+          "r2_std": 0.0277,
+          "rmse_mean": 3.3782,
+          "mae_mean": 2.4743,
+          "fit_seconds": 0.13
+        }
+      ],
+      "regression_model": "random_forest",
+      "regression_params": {
+        "max_depth": null,
+        "max_features": 0.6,
+        "min_samples_leaf": 3,
+        "n_estimators": 419
+      },
+      "regression": {
+        "rmse": 3.3934,
+        "mae": 2.4419,
+        "r2": 0.2238
+      },
+      "classification_comparison": [
+        {
+          "model": "random_forest",
+          "roc_auc_mean": 0.814,
+          "f1_mean": 0.869,
+          "precision_mean": 0.8388,
+          "recall_mean": 0.9017,
+          "fit_seconds": 4.57
+        },
+        {
+          "model": "gradient_boosting",
+          "roc_auc_mean": 0.7855,
+          "f1_mean": 0.8661,
+          "precision_mean": 0.8348,
+          "recall_mean": 0.9001,
+          "fit_seconds": 9.04
+        },
+        {
+          "model": "logistic_regression",
+          "roc_auc_mean": 0.7824,
+          "f1_mean": 0.8161,
+          "precision_mean": 0.8887,
+          "recall_mean": 0.7558,
+          "fit_seconds": 0.2
+        }
+      ],
+      "classification_model": "random_forest",
+      "classification_params": {
+        "max_depth": 16,
+        "min_samples_leaf": 6,
+        "n_estimators": 558
+      },
+      "classification": {
+        "roc_auc": 0.7662,
+        "accuracy": 0.7799,
+        "precision": 0.8462,
+        "recall": 0.8773,
+        "f1": 0.8614,
+        "confusion_matrix": {
+          "tn": 20,
+          "fp": 26,
+          "fn": 20,
+          "tp": 143
+        }
+      }
+    },
+    "with_g1": {
+      "description": "Adds the first-period grade (usable after period 1)",
+      "include_grades": "g1",
+      "features": 40,
+      "regression_comparison": [
+        {
+          "model": "random_forest",
+          "r2_mean": 0.8069,
+          "r2_std": 0.0478,
+          "rmse_mean": 1.6883,
+          "mae_mean": 1.0545,
+          "fit_seconds": 2.01
+        },
+        {
+          "model": "gradient_boosting",
+          "r2_mean": 0.8013,
+          "r2_std": 0.043,
+          "rmse_mean": 1.7096,
+          "mae_mean": 1.083,
+          "fit_seconds": 2.39
+        },
+        {
+          "model": "ridge",
+          "r2_mean": 0.7716,
+          "r2_std": 0.029,
+          "rmse_mean": 1.8383,
+          "mae_mean": 1.2295,
+          "fit_seconds": 0.12
+        }
+      ],
+      "regression_model": "random_forest",
+      "regression_params": {
+        "max_depth": 10,
+        "max_features": 1.0,
+        "min_samples_leaf": 4,
+        "n_estimators": 594
+      },
+      "regression": {
+        "rmse": 1.5266,
+        "mae": 1.0505,
+        "r2": 0.8429
+      },
+      "classification_comparison": [
+        {
+          "model": "gradient_boosting",
+          "roc_auc_mean": 0.9628,
+          "f1_mean": 0.9407,
+          "precision_mean": 0.9336,
+          "recall_mean": 0.9493,
+          "fit_seconds": 3.24
+        },
+        {
+          "model": "logistic_regression",
+          "roc_auc_mean": 0.959,
+          "f1_mean": 0.9286,
+          "precision_mean": 0.9596,
+          "recall_mean": 0.9002,
+          "fit_seconds": 0.11
+        },
+        {
+          "model": "random_forest",
+          "roc_auc_mean": 0.9429,
+          "f1_mean": 0.9273,
+          "precision_mean": 0.9245,
+          "recall_mean": 0.9309,
+          "fit_seconds": 3.9
+        }
+      ],
+      "classification_model": "gradient_boosting",
+      "classification_params": {
+        "learning_rate": 0.028171515121115074,
+        "max_depth": 2,
+        "n_estimators": 280
+      },
+      "classification": {
+        "roc_auc": 0.9427,
+        "accuracy": 0.9187,
+        "precision": 0.9451,
+        "recall": 0.9509,
+        "f1": 0.948,
+        "confusion_matrix": {
+          "tn": 37,
+          "fp": 9,
+          "fn": 8,
+          "tp": 155
+        }
+      }
+    },
+    "with_g1_g2": {
+      "description": "Adds both previous grades (strongest, least useful operationally)",
+      "include_grades": "g1_g2",
+      "features": 43,
+      "regression_comparison": [
+        {
+          "model": "random_forest",
+          "r2_mean": 0.855,
+          "r2_std": 0.0515,
+          "rmse_mean": 1.4486,
+          "mae_mean": 0.8784,
+          "fit_seconds": 2.1
+        },
+        {
+          "model": "gradient_boosting",
+          "r2_mean": 0.8466,
+          "r2_std": 0.0407,
+          "rmse_mean": 1.4933,
+          "mae_mean": 0.9351,
+          "fit_seconds": 2.7
+        },
+        {
+          "model": "ridge",
+          "r2_mean": 0.8366,
+          "r2_std": 0.0448,
+          "rmse_mean": 1.5446,
+          "mae_mean": 0.9836,
+          "fit_seconds": 0.13
+        }
+      ],
+      "regression_model": "random_forest",
+      "regression_params": {
+        "max_depth": null,
+        "max_features": 0.6,
+        "min_samples_leaf": 5,
+        "n_estimators": 556
+      },
+      "regression": {
+        "rmse": 1.3573,
+        "mae": 0.8925,
+        "r2": 0.8758
+      },
+      "classification_comparison": [
+        {
+          "model": "random_forest",
+          "roc_auc_mean": 0.9749,
+          "f1_mean": 0.9528,
+          "precision_mean": 0.9699,
+          "recall_mean": 0.937,
+          "fit_seconds": 5.06
+        },
+        {
+          "model": "logistic_regression",
+          "roc_auc_mean": 0.9715,
+          "f1_mean": 0.9342,
+          "precision_mean": 0.9629,
+          "recall_mean": 0.9078,
+          "fit_seconds": 0.23
+        },
+        {
+          "model": "gradient_boosting",
+          "roc_auc_mean": 0.9701,
+          "f1_mean": 0.946,
+          "precision_mean": 0.9387,
+          "recall_mean": 0.9539,
+          "fit_seconds": 3.62
+        }
+      ],
+      "classification_model": "random_forest",
+      "classification_params": {
+        "max_depth": 10,
+        "min_samples_leaf": 5,
+        "n_estimators": 485
+      },
+      "classification": {
+        "roc_auc": 0.9585,
+        "accuracy": 0.89,
+        "precision": 0.9605,
+        "recall": 0.8957,
+        "f1": 0.927,
+        "confusion_matrix": {
+          "tn": 40,
+          "fp": 6,
+          "fn": 17,
+          "tp": 146
+        }
+      }
+    }
+  },
+  "leakage_table": [
+    {
+      "scenario": "no_grades",
+      "regression_r2": 0.2238,
+      "regression_rmse": 3.3934,
+      "classification_auc": 0.7662,
+      "classification_f1": 0.8614
+    },
+    {
+      "scenario": "with_g1",
+      "regression_r2": 0.8429,
+      "regression_rmse": 1.5266,
+      "classification_auc": 0.9427,
+      "classification_f1": 0.948
+    },
+    {
+      "scenario": "with_g1_g2",
+      "regression_r2": 0.8758,
+      "regression_rmse": 1.3573,
+      "classification_auc": 0.9585,
+      "classification_f1": 0.927
+    }
+  ],
+  "cross_subject_transfer": {
+    "mat_to_por": {
+      "train_subject": "mat",
+      "test_subject": "por",
+      "regression": {
+        "rmse": 3.6858,
+        "mae": 2.8129,
+        "r2": -0.3036
+      },
+      "classification": {
+        "roc_auc": 0.6913,
+        "accuracy": 0.7227,
+        "precision": 0.8968,
+        "recall": 0.7596,
+        "f1": 0.8225,
+        "confusion_matrix": {
+          "tn": 52,
+          "fp": 48,
+          "fn": 132,
+          "tp": 417
+        }
+      }
+    },
+    "por_to_mat": {
+      "train_subject": "por",
+      "test_subject": "mat",
+      "regression": {
+        "rmse": 4.3415,
+        "mae": 3.1006,
+        "r2": 0.0997
+      },
+      "classification": {
+        "roc_auc": 0.6156,
+        "accuracy": 0.6962,
+        "precision": 0.6997,
+        "recall": 0.9585,
+        "f1": 0.8089,
+        "confusion_matrix": {
+          "tn": 21,
+          "fp": 109,
+          "fn": 11,
+          "tp": 254
+        }
+      }
+    }
+  },
+  "primary_regression": {
+    "rmse": 3.3934,
+    "mae": 2.4419,
+    "r2": 0.2238
+  },
+  "primary_classification": {
+    "roc_auc": 0.7662,
+    "accuracy": 0.7799,
+    "precision": 0.8462,
+    "recall": 0.8773,
+    "f1": 0.8614,
+    "confusion_matrix": {
+      "tn": 20,
+      "fp": 26,
+      "fn": 20,
+      "tp": 143
+    }
+  },
+  "feature_importance": [
+    {
+      "feature": "failures",
+      "importance": 0.20061
+    },
+    {
+      "feature": "absences",
+      "importance": 0.07606
+    },
+    {
+      "feature": "absence_flag",
+      "importance": 0.05175
+    },
+    {
+      "feature": "study_balance",
+      "importance": 0.03338
+    },
+    {
+      "feature": "parent_education",
+      "importance": 0.03209
+    },
+    {
+      "feature": "health",
+      "importance": 0.02717
+    },
+    {
+      "feature": "age",
+      "importance": 0.02557
+    },
+    {
+      "feature": "social_index",
+      "importance": 0.02536
+    },
+    {
+      "feature": "subject_por",
+      "importance": 0.02516
+    },
+    {
+      "feature": "alcohol_index",
+      "importance": 0.02387
+    },
+    {
+      "feature": "subject_mat",
+      "importance": 0.02371
+    },
+    {
+      "feature": "support_index",
+      "importance": 0.02244
+    },
+    {
+      "feature": "Medu",
+      "importance": 0.02124
+    },
+    {
+      "feature": "higher_1",
+      "importance": 0.02108
+    },
+    {
+      "feature": "freetime",
+      "importance": 0.02003
+    }
+  ],
+  "runtime_seconds": 1184.2
+}
