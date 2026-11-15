@@ -65,3 +65,35 @@ def download(force: bool = False, verbose: bool = True) -> dict[str, Path]:
     if not archive.exists():  # pragma: no cover - defensive
         raise RuntimeError("download failed and no cached archive exists")
     return targets
+
+
+# --------------------------------------------------------------------------- #
+# Loading
+# --------------------------------------------------------------------------- #
+def load_subject(subject: str) -> pd.DataFrame:
+    """Load one subject file (semicolon separated, quoted strings)."""
+    if subject not in config.SUBJECT_FILES:
+        raise ValueError(f"unknown subject '{subject}'")
+    path = config.RAW_DIR / config.SUBJECT_FILES[subject]
+    if not path.exists():
+        download(verbose=False)
+
+    frame = pd.read_csv(path, sep=";")
+    frame.columns = [column.strip() for column in frame.columns]
+    frame["subject"] = subject
+    return frame
+
+
+def load_all(verbose: bool = True) -> dict[str, pd.DataFrame]:
+    """Return both subject frames, keyed by ``mat`` and ``por``."""
+    frames = {subject: load_subject(subject) for subject in config.SUBJECT_FILES}
+    if verbose:
+        for subject, frame in frames.items():
+            print(f"[data] {config.SUBJECT_LABELS[subject]:<12} {len(frame):,} students")
+        print(f"[data] combined {sum(len(f) for f in frames.values()):,} rows")
+    return frames
+
+
+def combine(frames: dict[str, pd.DataFrame] | None = None) -> pd.DataFrame:
+    frames = frames or load_all(verbose=False)
+    return pd.concat(frames.values(), ignore_index=True)
