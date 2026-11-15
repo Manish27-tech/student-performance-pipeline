@@ -311,3 +311,47 @@ def run_scenarios(df: pd.DataFrame, y_regression: pd.Series, y_pass: pd.Series,
               f"| AUC={results[scenario]['classification']['roc_auc']:.3f} "
               f"F1={results[scenario]['classification']['f1']:.3f}")
     return results
+
+
+# --------------------------------------------------------------------------- #
+# Cross-subject transfer
+# --------------------------------------------------------------------------- #
+def cross_subject_transfer(frames: dict[str, pd.DataFrame]) -> dict:
+    """Does a no-grade model trained on one subject work on the other?"""
+    transfer: dict[str, dict] = {}
+    name = "gradient_boosting"
+
+    for train_subject, test_subject in (("mat", "por"), ("por", "mat")):
+        # Clean both sides defensively: yes/no columns must be 0/1 before the
+        # indices are summed, otherwise ``support_index`` becomes a string.
+        train_frame = clean(frames[train_subject])[0]
+        test_frame = clean(frames[test_subject])[0]
+        X_train, y_train = build_feature_matrix(train_frame, include_grades=False)
+        X_test, y_test = build_feature_matrix(test_frame, include_grades=False)
+        pass_train, pass_test = (pass_target(train_frame), pass_target(test_frame))
+
+        regressor = regression_candidates()[name]
+        classifier = classification_candidates()[name]
+        numeric, categorical = feature_columns(include_grades=False)
+        reg_pipeline = Pipeline([
+            ("preprocess", build_preprocessor(numeric, categorical)),
+            ("model", regressor),
+        ]).fit(X_train, y_train)
+        cls_pipeline = Pipeline([
+            ("preprocess", build_preprocessor(numeric, categorical)),
+            ("model", classifier),
+        ]).fit(X_train, pass_train)
+
+        regression = regression_metrics(y_test, reg_pipeline.predict(X_test))
+        classification = classification_metrics(
+            pass_test, cls_pipeline.predict_proba(X_test)[:, 1])
+
+        transfer[f"{train_subject}_to_{test_subject}"] = {
+            "train_subject": train_subject,
+            "test_subject": test_subject,
+            "regression": regression,
+            "classification": classification,
+        }
+        print(f"[model] transfer {train_subject}->{test_subject}: "
+              f"R2={regression['r2']:.3f} AUC={classification['roc_auc']:.3f}")
+    return transfer
