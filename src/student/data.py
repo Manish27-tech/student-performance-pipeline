@@ -97,3 +97,98 @@ def load_all(verbose: bool = True) -> dict[str, pd.DataFrame]:
 def combine(frames: dict[str, pd.DataFrame] | None = None) -> pd.DataFrame:
     frames = frames or load_all(verbose=False)
     return pd.concat(frames.values(), ignore_index=True)
+
+
+# --------------------------------------------------------------------------- #
+# Validation
+# --------------------------------------------------------------------------- #
+class DataValidationError(ValueError):
+    """Raised when a subject file does not satisfy the expected schema."""
+
+
+def validate(df: pd.DataFrame) -> dict:
+    """Run schema, scale and domain checks, raising on critical failures."""
+    checks: list[dict] = []
+    critical: list[str] = []
+
+    def record(name: str, passed: bool, detail: str, is_critical: bool = False) -> None:
+        checks.append({"check": name, "passed": bool(passed), "detail": detail,
+                       "critical": is_critical})
+        if not passed and is_critical:
+            critical.append(name)
+
+    missing = [column for column in config.COLUMNS if column not in df.columns]
+    record("expected_columns", not missing,
+           "all 33 columns present" if not missing else f"missing: {missing}",
+           is_critical=True)
+    if critical:
+        raise DataValidationError("failed critical validation: " + ", ".join(critical))
+
+    record("non_empty", len(df) > 0, f"{len(df):,} rows", is_critical=True)
+    record("expected_scale", len(df) >= 350,
+           f"{len(df):,} rows (files carry 395 and 649 students)")
+
+    for column in ("G1", "G2", "G3"):
+        low, high = config.VALID_RANGES[column]
+        values = pd.to_numeric(df[column], errors="coerce")
+        inside = bool(values.between(low, high).all())
+        record(f"{column}_range", inside and values.notna().all(),
+               f"{column} within {low}-{high}", is_critical=True)
+
+    bad_scales = []
+    for column, (low, high) in config.VALID_RANGES.items():
+        if column in ("G1", "G2", "G3") or column not in df.columns:
+            continue
+        values = pd.to_numeric(df[column], errors="coerce")
+        if not values.between(low, high).all():
+            bad_scales.append(column)
+    record("bounded_scales", not bad_scales,
+           "documented 1-5 / 0-4 scales respected" if not bad_scales
+           else f"outside documented range: {bad_scales}")
+
+    odd_yes_no = {}
+    for column in YES_NO_COLUMNS:
+        levels = set(df[column].dropna().unique())
+        if not levels <= {"yes", "no"}:
+            odd_yes_no[column] = sorted(levels)
+    record("yes_no_domain", not odd_yes_no,
+           "binary columns are yes/no" if not odd_yes_no else f"unexpected: {odd_yes_no}")
+
+    zero_grades = int((pd.to_numeric(df[config.TARGET]) == 0).sum())
+    record("zero_grades_reported", True,
+           f"{zero_grades} students scored 0 — reported, never silently dropped")
+
+    if "subject" in df.columns:
+        rates = (df.assign(passed=pd.to_numeric(df[config.TARGET]) >= config.PASS_MARK)
+                 .groupby("subject")["passed"].mean().round(3))
+        record("pass_rate_plausible", bool(rates.between(0.4, 0.99).all()),
+               f"pass rate by subject: {rates.to_dict()}")
+        positive = rates.to_dict()
+    else:
+        rate = float((pd.to_numeric(df[config.TARGET]) >= config.PASS_MARK).mean())
+        record("pass_rate_plausible", 0.4 <= rate <= 0.99, f"pass rate {rate:.3f}")
+        positive = {"all": round(rate, 3)}
+
+    duplicates = int(df.drop(columns=["subject"]).duplicated().sum()
+                     if "subject" in df.columns else df.duplicated().sum())
+    key_duplicates = int(df.duplicated(subset=config.MERGE_KEYS).sum())
+    record("duplicates_reported", True,
+           f"{duplicates} identical rows, {key_duplicates} duplicate pairing keys "
+           "(kept: two students can share every attribute)")
+
+    report = {
+        "rows": int(len(df)),
+        "columns": len(config.COLUMNS),
+        "pass_rate": positive,
+        "zero_grades": zero_grades,
+        "duplicate_rows": duplicates,
+        "duplicate_merge_keys": key_duplicates,
+        "mean_g3": round(float(pd.to_numeric(df[config.TARGET]).mean()), 3),
+        "checks": checks,
+    }
+    if critical:
+        failed = [check["check"] for check in checks
+                  if check["critical"] and not check["passed"]]
+        raise DataValidationError("failed critical validation: " + ", ".join(failed))
+    df.attrs["validation"] = report
+    return report
