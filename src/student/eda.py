@@ -252,3 +252,55 @@ def plot_pass_balance(frames: dict[str, pd.DataFrame]) -> None:
     ax.set_title("Pass rate differs sharply between the two subjects")
     ax.legend(title="")
     _save(fig, "07_pass_balance.png")
+
+
+# --------------------------------------------------------------------------- #
+# Pairing figures and orchestration
+# --------------------------------------------------------------------------- #
+def plot_paired_deltas(pairs: pd.DataFrame, comparison: dict) -> None:
+    delta = pairs["G3_por"] - pairs["G3_mat"]
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.4))
+    axes[0].hist(delta, bins=range(-12, 14), color="#DD8452", edgecolor="white",
+                 align="left")
+    axes[0].axvline(0, color="black", linewidth=1)
+    axes[0].axvline(delta.mean(), color="#4C72B0", linestyle="--", linewidth=2,
+                    label=f"mean = {delta.mean():+.2f}")
+    axes[0].set_xlabel("Portuguese G3 − maths G3")
+    axes[0].set_ylabel("Students")
+    axes[0].set_title("Paired difference for the same 382 students")
+    axes[0].legend()
+
+    axes[1].scatter(pairs["G3_mat"], pairs["G3_por"], alpha=0.45, s=18,
+                    color="#4C72B0", edgecolor="none")
+    axes[1].plot([0, 20], [0, 20], linestyle="--", color="grey", linewidth=1)
+    axes[1].set_xlabel("Maths G3")
+    axes[1].set_ylabel("Portuguese G3")
+    axes[1].set_title(f"Correlation r = {comparison['grade_correlation']:.2f}")
+    axes[1].set_xlim(0, 20)
+    axes[1].set_ylim(0, 20)
+    _save(fig, "08_paired_deltas.png")
+
+
+def run_eda(frames: dict[str, pd.DataFrame]) -> dict:
+    """Generate every EDA artefact and persist the summary."""
+    from .merge import pair_students
+
+    summary = compute_summary(frames)
+    pairs = pair_students(frames["mat"], frames["por"])
+    comparison = compare_subjects(pairs)
+    summary["paired_comparison"] = comparison
+
+    plot_grade_distributions(frames)
+    plot_trajectory(frames)
+    plot_zero_grades(frames)
+    plot_correlation_heatmap(frames)
+    plot_g3_by_drivers(frames)
+    plot_absences(frames)
+    plot_pass_balance(frames)
+    plot_paired_deltas(pairs, comparison)
+
+    path = config.REPORT_DIR / "eda_summary.json"
+    path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    print(f"[eda] summary -> {path.relative_to(config.ROOT)}")
+    return summary
