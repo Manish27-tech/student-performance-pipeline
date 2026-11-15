@@ -355,3 +355,222 @@ def cross_subject_transfer(frames: dict[str, pd.DataFrame]) -> dict:
         print(f"[model] transfer {train_subject}->{test_subject}: "
               f"R2={regression['r2']:.3f} AUC={classification['roc_auc']:.3f}")
     return transfer
+
+
+# --------------------------------------------------------------------------- #
+# Plots
+# --------------------------------------------------------------------------- #
+def _save(fig: plt.Figure, filename: str) -> None:
+    fig.savefig(config.FIGURE_DIR / filename, dpi=config.FIG_DPI, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_leakage(scenarios: dict) -> None:
+    frame = pd.DataFrame([
+        {"scenario": name, "R2": block["regression"]["r2"],
+         "AUC": block["classification"]["roc_auc"]}
+        for name, block in scenarios.items()
+    ])
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.4))
+    for ax, metric, colour, label in (
+        (axes[0], "R2", "#4C72B0", "Regression R² (final grade)"),
+        (axes[1], "AUC", "#DD8452", "Classification ROC AUC (pass/fail)"),
+    ):
+        sns.barplot(data=frame, x="scenario", y=metric, ax=ax, color=colour)
+        ax.bar_label(ax.containers[0], fmt="%.3f", fontsize=9)
+        ax.set_title(label)
+        ax.set_xlabel("")
+        ax.set_ylim(0, 1.05)
+        ax.tick_params(axis="x", rotation=12)
+    fig.suptitle("Performance is almost entirely bought with previous grades",
+                 fontsize=13)
+    _save(fig, "09_leakage_scenarios.png")
+
+
+def plot_predicted_vs_actual(scenarios: dict) -> None:
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.6), sharex=True, sharey=True)
+    for ax, scenario in zip(axes, ("no_grades", "with_g1_g2"), strict=True):
+        block = scenarios[scenario]
+        truth, prediction = block["_y_test"], block["_reg_pred"]
+        ax.scatter(truth, prediction, s=16, alpha=0.5, color="#4C72B0",
+                   edgecolor="none")
+        ax.plot([0, 20], [0, 20], linestyle="--", color="grey", linewidth=1)
+        ax.set_title(f"{scenario} — R² = {block['regression']['r2']:.2f}")
+        ax.set_xlabel("Actual G3")
+        ax.set_ylabel("Predicted G3")
+        ax.set_xlim(0, 20)
+        ax.set_ylim(0, 20)
+    fig.suptitle("Without prior grades the model regresses toward the mean",
+                 fontsize=13)
+    _save(fig, "10_predicted_vs_actual.png")
+
+
+def plot_residuals(scenarios: dict) -> None:
+    block = scenarios["no_grades"]
+    residuals = np.asarray(block["_y_test"]) - np.asarray(block["_reg_pred"])
+
+    fig, ax = plt.subplots(figsize=(7.5, 4.3))
+    sns.histplot(residuals, bins=25, ax=ax, color="#4C72B0", kde=True)
+    ax.axvline(0, color="black", linewidth=1)
+    ax.set_xlabel("Residual (actual − predicted)")
+    ax.set_title(f"Errors are wide: MAE = {block['regression']['mae']:.2f} points")
+    _save(fig, "11_residuals.png")
+
+
+def plot_confusion(scenarios: dict) -> None:
+    matrix = scenarios["no_grades"]["classification"]["confusion_matrix"]
+    array = np.array([[matrix["tn"], matrix["fp"]], [matrix["fn"], matrix["tp"]]])
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+    sns.heatmap(array, annot=True, fmt=",d", cmap="Blues", cbar=False,
+                xticklabels=["Fail", "Pass"], yticklabels=["Fail", "Pass"], ax=ax)
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Actual")
+    ax.set_title("Pass/fail confusion without prior grades")
+    _save(fig, "12_confusion.png")
+
+
+def feature_importance(pipeline: Pipeline, top_n: int = 15) -> list[dict]:
+    preprocessor = pipeline.named_steps["preprocess"]
+    model = pipeline.named_steps["model"]
+    names = list(preprocessor.get_feature_names_out())
+
+    if hasattr(model, "feature_importances_"):
+        values = np.asarray(model.feature_importances_)
+    elif hasattr(model, "coef_"):
+        values = np.abs(np.ravel(model.coef_))
+    else:  # pragma: no cover
+        return []
+
+    order = np.argsort(values)[::-1][:top_n]
+    return [{"feature": names[index].split("__", 1)[-1],
+             "importance": round(float(values[index]), 5)} for index in order]
+
+
+def plot_importance(importances: list[dict]) -> None:
+    frame = pd.DataFrame(importances).sort_values("importance")
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.barplot(data=frame, x="importance", y="feature", hue="feature", legend=False,
+                palette="crest", ax=ax)
+    ax.set_title("What the early-warning model leans on")
+    ax.set_xlabel("Importance")
+    ax.set_ylabel("")
+    _save(fig, "13_feature_importance.png")
+
+
+def plot_transfer(transfer: dict) -> None:
+    frame = pd.DataFrame([
+        {"direction": key.replace("_to_", " → "), "R2": block["regression"]["r2"],
+         "AUC": block["classification"]["roc_auc"]}
+        for key, block in transfer.items()
+    ]).melt(id_vars=["direction"], var_name="metric", value_name="score")
+
+    fig, ax = plt.subplots(figsize=(8, 4.4))
+    sns.barplot(data=frame, x="direction", y="score", hue="metric", ax=ax,
+                palette=["#4C72B0", "#DD8452"])
+    ax.set_ylim(0, 1.05)
+    ax.set_xlabel("Train → test subject")
+    ax.set_title("Cross-subject transfer without grades")
+    ax.legend(title="")
+    _save(fig, "14_cross_subject.png")
+
+
+# --------------------------------------------------------------------------- #
+# Orchestration
+# --------------------------------------------------------------------------- #
+def train(df: pd.DataFrame, frames: dict[str, pd.DataFrame] | None = None,
+          seed: int = config.RANDOM_STATE) -> dict:
+    """Run the full modelling workflow and persist metrics, figures and models."""
+    started = time.perf_counter()
+
+    target_regression = pd.to_numeric(df[config.TARGET], errors="coerce").astype(int)
+    target_pass = pass_target(df)
+
+    indices = np.arange(len(df))
+    train_index, test_index = train_test_split(
+        indices, test_size=config.TEST_SIZE, random_state=seed, stratify=target_pass
+    )
+
+    print(f"[model] students={len(df):,} train={len(train_index):,} "
+          f"test={len(test_index):,}")
+
+    scenarios = run_scenarios(df, target_regression, target_pass, train_index, test_index)
+    transfer = cross_subject_transfer(frames) if frames else {}
+    importances = feature_importance(scenarios["no_grades"]["_reg_pipeline"])
+
+    # Figures consume the private prediction arrays, so draw before stripping them.
+    plot_leakage(scenarios)
+    plot_predicted_vs_actual(scenarios)
+    plot_residuals(scenarios)
+    plot_confusion(scenarios)
+    plot_importance(importances)
+    if transfer:
+        plot_transfer(transfer)
+
+    bundle = {
+        "regression": scenarios["no_grades"]["_reg_pipeline"],
+        "classifier": scenarios["no_grades"]["_cls_pipeline"],
+        "features": feature_columns(include_grades=False),
+        "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+
+    public_scenarios = {
+        name: {key: value for key, value in block.items() if not key.startswith("_")}
+        for name, block in scenarios.items()
+    }
+
+    metrics = {
+        "generated_at": bundle["trained_at"],
+        "dataset": {
+            "rows": int(len(df)),
+            "train_rows": int(len(train_index)),
+            "test_rows": int(len(test_index)),
+            "mean_g3": round(float(target_regression.mean()), 3),
+            "pass_rate": round(float(target_pass.mean()), 4),
+        },
+        "scenarios": public_scenarios,
+        "leakage_table": [
+            {"scenario": name,
+             "regression_r2": block["regression"]["r2"],
+             "regression_rmse": block["regression"]["rmse"],
+             "classification_auc": block["classification"]["roc_auc"],
+             "classification_f1": block["classification"]["f1"]}
+            for name, block in public_scenarios.items()
+        ],
+        "cross_subject_transfer": transfer,
+        "primary_regression": public_scenarios["no_grades"]["regression"],
+        "primary_classification": public_scenarios["no_grades"]["classification"],
+        "feature_importance": importances,
+        "runtime_seconds": round(time.perf_counter() - started, 1),
+    }
+
+    metrics_path = config.REPORT_DIR / "metrics.json"
+    metrics_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+
+    bundle["metrics"] = metrics
+    model_path = config.ARTIFACT_DIR / "student_model.joblib"
+    joblib.dump(bundle, model_path)
+
+    print(f"[model] primary R2={metrics['primary_regression']['r2']:.3f} "
+          f"RMSE={metrics['primary_regression']['rmse']:.2f} "
+          f"| AUC={metrics['primary_classification']['roc_auc']:.3f}")
+    print(f"[model] metrics -> {metrics_path.relative_to(config.ROOT)}")
+    print(f"[model] model   -> {model_path.relative_to(config.ROOT)}")
+    return metrics
+
+
+def load_model(path=None) -> dict:
+    path = path or (config.ARTIFACT_DIR / "student_model.joblib")
+    return joblib.load(path)
+
+
+def predict(df: pd.DataFrame, bundle: dict | None = None) -> np.ndarray:
+    """Predict the final grade with the saved early-warning model."""
+    bundle = bundle or load_model()
+    numeric, categorical = bundle["features"]
+    features = add_features(df)[numeric + categorical].copy()
+    for column in categorical:
+        features[column] = features[column].astype(object).where(
+            features[column].notna(), np.nan)
+    return bundle["regression"].predict(features)
