@@ -164,3 +164,91 @@ def plot_zero_grades(frames: dict[str, pd.DataFrame]) -> None:
     ax.set_title("Zero finals are real observations, not missing data")
     ax.legend(title="")
     _save(fig, "03_zero_grades.png")
+
+
+# --------------------------------------------------------------------------- #
+# Relationship figures
+# --------------------------------------------------------------------------- #
+def plot_correlation_heatmap(frames: dict[str, pd.DataFrame]) -> None:
+    combined = pd.concat(frames.values(), ignore_index=True)
+    engineered = add_features(combined)
+    columns = [
+        "age", "Medu", "Fedu", "studytime", "failures", "absences", "goout",
+        "Dalc", "Walc", "health", "parent_education", "support_index", "social_index",
+        "alcohol_index", "G1", "G2", config.TARGET,
+    ]
+    correlation = engineered[columns].corr(numeric_only=True)
+    mask = np.triu(np.ones_like(correlation, dtype=bool), k=1)
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.heatmap(correlation, mask=mask, annot=True, fmt=".2f", cmap="vlag", center=0,
+                square=True, cbar_kws={"shrink": 0.75}, annot_kws={"size": 7.5}, ax=ax)
+    ax.set_title("Correlation matrix (both subjects pooled)")
+    _save(fig, "04_correlation_heatmap.png")
+
+
+def plot_g3_by_drivers(frames: dict[str, pd.DataFrame]) -> None:
+    combined = pd.concat(frames.values(), ignore_index=True)
+    engineered = add_features(combined)
+    panels = [
+        ("failures", "Past failures", "count"),
+        ("studytime", "Weekly study time (1–4)", "count"),
+        ("higher", "Wants higher education", "count"),
+        ("goout", "Goes out with friends (1–5)", "count"),
+    ]
+
+    fig, axes = plt.subplots(2, 2, figsize=(13, 8))
+    for ax, (column, label, kind) in zip(axes.ravel(), panels, strict=True):
+        if kind == "count":
+            sns.boxplot(data=engineered, x=column, y=config.TARGET, ax=ax,
+                        color="#B0C4DE", showfliers=False)
+            sns.stripplot(data=engineered, x=column, y=config.TARGET, ax=ax,
+                          color="#333333", size=1.6, alpha=0.35, jitter=0.18)
+        ax.set_title(label)
+        ax.set_xlabel("")
+        ax.set_ylabel("Final grade G3")
+    fig.suptitle("Habits and history move the final grade; the spread stays wide",
+                 fontsize=13)
+    _save(fig, "05_g3_by_drivers.png")
+
+
+def plot_absences(frames: dict[str, pd.DataFrame]) -> None:
+    combined = pd.concat(frames.values(), ignore_index=True)
+    combined = combined.assign(passed=combined[config.TARGET] >= config.PASS_MARK)
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.3))
+    sns.histplot(combined["absences"], bins=40, ax=axes[0], color="#4C72B0")
+    axes[0].set_yscale("log")
+    axes[0].set_xlabel("School absences")
+    axes[0].set_ylabel("Students (log scale)")
+    axes[0].set_title(f"{combined['absences'].eq(0).mean():.0%} have zero absences")
+
+    sns.boxplot(data=combined, x="passed", y="absences", ax=axes[1],
+                showfliers=False, hue="passed", legend=False)
+    axes[1].set_xticks([0, 1], ["Failed (<10)", "Passed (>=10)"])
+    axes[1].set_xlabel("")
+    axes[1].set_ylabel("Absences")
+    axes[1].set_title("Absences are right-skewed and weakly separating")
+    _save(fig, "06_absences.png")
+
+
+def plot_pass_balance(frames: dict[str, pd.DataFrame]) -> None:
+    rows = []
+    for subject, frame in frames.items():
+        passed = int((frame[config.TARGET] >= config.PASS_MARK).sum())
+        rows.append({"subject": config.SUBJECT_LABELS[subject], "outcome": "Pass",
+                     "students": passed})
+        rows.append({"subject": config.SUBJECT_LABELS[subject], "outcome": "Fail",
+                     "students": int(len(frame) - passed)})
+    frame = pd.DataFrame(rows)
+
+    fig, ax = plt.subplots(figsize=(8, 4.2))
+    sns.barplot(data=frame, x="subject", y="students", hue="outcome", ax=ax,
+                palette=["#55A868", "#C44E52"])
+    for container in ax.containers:
+        ax.bar_label(container, fmt="%d", fontsize=9)
+    ax.set_xlabel("")
+    ax.set_ylabel("Students")
+    ax.set_title("Pass rate differs sharply between the two subjects")
+    ax.legend(title="")
+    _save(fig, "07_pass_balance.png")
