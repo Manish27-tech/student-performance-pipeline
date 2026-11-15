@@ -54,3 +54,69 @@ def pairing_report(mat: pd.DataFrame, por: pd.DataFrame) -> dict:
         "keys_used": list(config.MERGE_KEYS),
         "all_shared_columns_tried": len(config.ALL_SHARED_COLUMNS),
     }
+
+
+# --------------------------------------------------------------------------- #
+# Comparison
+# --------------------------------------------------------------------------- #
+def compare_subjects(pairs: pd.DataFrame) -> dict:
+    """Paired comparison of the third-period grade in both subjects.
+
+    The same 382 people sit on both sides of every test, so the analysis is
+    within-student: how much better or worse does a person do in Portuguese?
+    """
+    mat_scores = pd.to_numeric(pairs["G3_mat"], errors="coerce")
+    por_scores = pd.to_numeric(pairs["G3_por"], errors="coerce")
+    delta = por_scores - mat_scores
+    valid = delta.dropna()
+
+    improved = int((valid > 0).sum())
+    worsened = int((valid < 0).sum())
+    tied = int((valid == 0).sum())
+    discordant = improved + worsened
+
+    sign_test = stats.binomtest(improved, discordant, p=0.5) if discordant else None
+    wilcoxon = stats.wilcoxon(valid, zero_method="wilcox") if (valid != 0).any() else None
+    standardised = float(valid.mean() / valid.std(ddof=1)) if valid.std(ddof=1) else 0.0
+
+    pairs_with_gap = pairs.assign(delta_por_minus_mat=delta).dropna(
+        subset=["delta_por_minus_mat"]
+    )
+
+    return {
+        "pairs": int(len(pairs)),
+        "mean_mat": round(float(mat_scores.mean()), 3),
+        "mean_por": round(float(por_scores.mean()), 3),
+        "mean_delta": round(float(delta.mean()), 3),
+        "median_delta": float(delta.median()),
+        "std_delta": round(float(delta.std(ddof=1)), 3),
+        "improved": improved,
+        "worsened": worsened,
+        "tied": tied,
+        "improved_share": round(improved / len(valid), 4),
+        "sign_test_p": float(sign_test.pvalue) if sign_test else None,
+        "wilcoxon_p": float(wilcoxon.pvalue) if wilcoxon else None,
+        "cohen_d_paired": round(standardised, 3),
+        "grade_correlation": round(float(mat_scores.corr(por_scores)), 4),
+        "pass_rate_mat": round(float((mat_scores >= config.PASS_MARK).mean()), 4),
+        "pass_rate_por": round(float((por_scores >= config.PASS_MARK).mean()), 4),
+        "largest_gains": pairs_with_gap.nlargest(5, "delta_por_minus_mat")[
+            ["pair_id", "G3_mat", "G3_por", "delta_por_minus_mat"]
+        ].to_dict("records"),
+        "largest_drops": pairs_with_gap.nsmallest(5, "delta_por_minus_mat")[
+            ["pair_id", "G3_mat", "G3_por", "delta_por_minus_mat"]
+        ].to_dict("records"),
+    }
+
+
+def first_to_final_trajectory(frame: pd.DataFrame) -> dict:
+    """Average G1 -> G2 -> G3 path for one subject file."""
+    return {
+        "rows": int(len(frame)),
+        "mean_g1": round(float(frame["G1"].mean()), 3),
+        "mean_g2": round(float(frame["G2"].mean()), 3),
+        "mean_g3": round(float(frame["G3"].mean()), 3),
+        "mean_g1_to_g2": round(float((frame["G2"] - frame["G1"]).mean()), 3),
+        "mean_g2_to_g3": round(float((frame["G3"] - frame["G2"]).mean()), 3),
+        "zero_g3": int((frame["G3"] == 0).sum()),
+    }
