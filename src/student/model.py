@@ -136,3 +136,60 @@ CLASSIFICATION_SPACES = {
         "model__max_depth": randint(2, 5),
     },
 }
+
+
+# --------------------------------------------------------------------------- #
+# Regression
+# --------------------------------------------------------------------------- #
+def regression_metrics(y_true, predictions) -> dict:
+    return {
+        "rmse": round(float(np.sqrt(mean_squared_error(y_true, predictions))), 4),
+        "mae": round(float(mean_absolute_error(y_true, predictions)), 4),
+        "r2": round(float(r2_score(y_true, predictions)), 4),
+    }
+
+
+def compare_regressors(X_train, y_train,
+                       grade_set: bool | str = False) -> list[dict]:
+    numeric, categorical = feature_columns(grade_set)
+    folds = KFold(n_splits=config.CV_FOLDS, shuffle=True, random_state=config.RANDOM_STATE)
+    scoring = {"r2": "r2", "neg_rmse": "neg_root_mean_squared_error",
+               "neg_mae": "neg_mean_absolute_error"}
+
+    rows = []
+    for name, estimator in regression_candidates().items():
+        pipeline = Pipeline([
+            ("preprocess", build_preprocessor(numeric, categorical)),
+            ("model", estimator),
+        ])
+        scores = cross_validate(pipeline, X_train, y_train, cv=folds, scoring=scoring,
+                                n_jobs=1, error_score="raise")
+        rows.append({
+            "model": name,
+            "r2_mean": round(float(scores["test_r2"].mean()), 4),
+            "r2_std": round(float(scores["test_r2"].std()), 4),
+            "rmse_mean": round(float(-scores["test_neg_rmse"].mean()), 4),
+            "mae_mean": round(float(-scores["test_neg_mae"].mean()), 4),
+            "fit_seconds": round(float(scores["fit_time"].mean()), 2),
+        })
+    return sorted(rows, key=lambda row: row["r2_mean"], reverse=True)
+
+
+def tune_regressor(name, X_train, y_train,
+                   grade_set: bool | str = False) -> tuple[Pipeline, dict]:
+    numeric, categorical = feature_columns(grade_set)
+    pipeline = Pipeline([
+        ("preprocess", build_preprocessor(numeric, categorical)),
+        ("model", regression_candidates()[name]),
+    ])
+    search = RandomizedSearchCV(
+        pipeline, REGRESSION_SPACES[name], n_iter=config.SEARCH_ITER, scoring="r2",
+        cv=KFold(n_splits=config.SEARCH_FOLDS, shuffle=True,
+                 random_state=config.RANDOM_STATE),
+        random_state=config.RANDOM_STATE, n_jobs=1, refit=True,
+    )
+    search.fit(X_train, y_train)
+    params = {key.replace("model__", ""):
+              (value.item() if hasattr(value, "item") else value)
+              for key, value in search.best_params_.items()}
+    return search.best_estimator_, params
