@@ -257,3 +257,57 @@ def tune_classifier(name, X_train, y_train,
               (value.item() if hasattr(value, "item") else value)
               for key, value in search.best_params_.items()}
     return search.best_estimator_, params
+
+
+# --------------------------------------------------------------------------- #
+# Leakage scenarios
+# --------------------------------------------------------------------------- #
+def run_scenarios(df: pd.DataFrame, y_regression: pd.Series, y_pass: pd.Series,
+                  train_index, test_index) -> dict:
+    """Fit regression and classification under each grade-availability scenario."""
+    results: dict[str, dict] = {}
+
+    for scenario, description in config.SCENARIOS.items():
+        grade_set: bool | str = {"no_grades": False, "with_g1": "g1",
+                                 "with_g1_g2": "g1_g2"}[scenario]
+        X, _ = build_feature_matrix(df, include_grades=grade_set)
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        reg_train, reg_test = y_regression.iloc[train_index], y_regression.iloc[test_index]
+        cls_train, cls_test = y_pass.iloc[train_index], y_pass.iloc[test_index]
+
+        reg_comparison = compare_regressors(X_train, reg_train, grade_set)
+        best_regressor, reg_params = tune_regressor(
+            reg_comparison[0]["model"], X_train, reg_train, grade_set)
+        best_regressor.fit(X_train, reg_train)
+        reg_predictions = best_regressor.predict(X_test)
+
+        cls_comparison = compare_classifiers(X_train, cls_train, grade_set)
+        best_classifier, cls_params = tune_classifier(
+            cls_comparison[0]["model"], X_train, cls_train, grade_set)
+        best_classifier.fit(X_train, cls_train)
+        cls_probabilities = best_classifier.predict_proba(X_test)[:, 1]
+
+        results[scenario] = {
+            "description": description,
+            "include_grades": grade_set,
+            "features": int(X.shape[1]),
+            "regression_comparison": reg_comparison,
+            "regression_model": reg_comparison[0]["model"],
+            "regression_params": reg_params,
+            "regression": regression_metrics(reg_test, reg_predictions),
+            "classification_comparison": cls_comparison,
+            "classification_model": cls_comparison[0]["model"],
+            "classification_params": cls_params,
+            "classification": classification_metrics(cls_test, cls_probabilities),
+            "_y_test": reg_test,
+            "_reg_pred": reg_predictions,
+            "_cls_test": cls_test,
+            "_cls_prob": cls_probabilities,
+            "_reg_pipeline": best_regressor,
+            "_cls_pipeline": best_classifier,
+        }
+        print(f"[model] {scenario:<12} R2={results[scenario]['regression']['r2']:.3f} "
+              f"RMSE={results[scenario]['regression']['rmse']:.2f} "
+              f"| AUC={results[scenario]['classification']['roc_auc']:.3f} "
+              f"F1={results[scenario]['classification']['f1']:.3f}")
+    return results
